@@ -3,8 +3,9 @@
 sudo apt-get update -y
 sudo apt-get install git -y
 
-rm -rf ~/multi-platform/
+rm -rf ~/multi-platform
 git clone https://github.com/Martinelllo/smarthome-multi-platform-installer.git ~/multi-platform
+rm -rf ~/multi-platform/.git
 
 sudo apt-get install python3-pip -y
 pip3 install -r ~/multi-platform/install/requirements.txt --break-system-packages
