@@ -7,7 +7,7 @@ rm -rf ~/multi-platform/
 git clone https://github.com/Martinelllo/smarthome-multi-platform-installer.git ~/multi-platform
 
 sudo apt-get install python3-pip -y
-pip3 install -r ~/multi-platform/requirements.txt --break-system-packages
+pip3 install -r ~/multi-platform/install/requirements.txt --break-system-packages
 
 # install pigpiod
 sudo apt-get install pigpiod -y
