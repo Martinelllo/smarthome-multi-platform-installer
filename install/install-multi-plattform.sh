@@ -22,7 +22,7 @@ sudo raspi-config nonint do_i2c 0
 sudo apt-get install -y python3-smbus i2c-tools
 
 # install and start service
-sudo cp ~/multi-platform/install/multi_module_platform.service /etc/systemd/system/multi_module_platform.service
+cp ~/multi-platform/install/multi_module_platform.service /etc/systemd/system/multi_module_platform.service
 
 sudo chmod 644 /etc/systemd/system/multi_module_platform.service
 sudo chmod 644 ~/multi-platform/main.py
@@ -30,4 +30,4 @@ sudo systemctl enable multi_module_platform
 sudo systemctl daemon-reload
 sudo systemctl start multi_module_platform
 
-rm -rf ~/multi-platform/install
+# rm -rf ~/multi-platform/install
