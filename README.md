@@ -1,0 +1,1 @@
+# smarthome-multi-platform-installer
