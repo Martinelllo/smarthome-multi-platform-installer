@@ -30,4 +30,4 @@ sudo systemctl enable multi_module_platform
 sudo systemctl daemon-reload
 sudo systemctl start multi_module_platform
 
-# rm -rf ~/multi-platform/install
+rm -rf ~/multi-platform/install
