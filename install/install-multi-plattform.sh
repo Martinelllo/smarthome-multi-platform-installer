@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROJECT_DIR="~/multi-platform"
+PROJECT_DIR=~/multi-platform
 
 sudo apt-get update -y
 sudo apt-get install git -y
