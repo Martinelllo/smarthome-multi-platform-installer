@@ -7,8 +7,8 @@ Conflicts=getty@tty1.service
 [Service]
 Type=simple
 User=pi
-ExecStart=/usr/bin/python3 /home/pi/multi_platform/main.py
-WorkingDirectory=/home/pi/multi_platform
+ExecStart=/usr/bin/python3 /home/pi/multi-platform/main.py
+WorkingDirectory=/home/pi/multi-platform
 Restart=always
 RestartSec=30
 StandardInput=tty-force
