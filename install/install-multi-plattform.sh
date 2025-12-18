@@ -43,4 +43,4 @@ sudo systemctl daemon-reload
 sudo systemctl start multi_module_platform
 
 rm -rf $PROJECT_DIR/install
-cp -r $PROJECT_DIR/.env_dist $PROJECT_DIR/.env_dist
+cp -r $PROJECT_DIR/.env_dist $PROJECT_DIR/.env

@@ -21,45 +21,45 @@ class DisplayInfoModule(ModuleBase):
         self.mqtt_client = MQTTClient()
         self.ui = SystemUI()
         self.topic = f"/module/{self.module_config.get_id()}"
-        
+
         # init
         self.show_logo()
         time.sleep(5)
         self.__use_default_value()
         self.mqtt_client.subscribe(self.topic, self.__execute_job)
-        
+
     def get_config(self) -> ModuleConfig:
         return self.module_config
-    
+
     def set_config(self, module_config: ModuleConfig):
         self.module_config = module_config
         self.__use_default_value()
-        
+
     def tick(self):
         return None
 
     def __execute_job(self, payload: dict):
         job = JobEntity(payload)
-        
+
         for task in job.get_tasks():
             self.show_logo()
             # todo cms
             time.sleep(task.get_duration())
-            
+
         self.__use_default_value()
-            
+
     def show_logo(self):
-        self.ui.show_info()
-        
+        self.ui.show_info("Display Module Id: " + self.module_config.get_id(), 'Hallo!')
+
     def __use_default_value(self):
         self.ui.show_menu()
-        
+
     def on_destroy(self):
         get_logger().warning(f"Stop module")
 
 
 if __name__ == "__main__":
-    
+
     # Basic example of clearing and drawing pixels on a SSD1306 OLED display.
     # This example and library is meant to work with Adafruit CircuitPython API.
     # Author: Tony DiCola

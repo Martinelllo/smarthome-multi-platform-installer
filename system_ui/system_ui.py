@@ -33,18 +33,18 @@ class SystemUI(metaclass=SingletonMeta):
     display_type = 'SSD1306_I2C', 'SH1106_I2C', 'SSD1306_SPI', 'SH1106_SPI'
     """
     def __init__(self):
-        
+
         self.config = ConfigStorage()
-        
+
         self.turn_dark_timer: Union[threading.Timer, None] = None
         self.turn_off_timer: Union[threading.Timer, None] = None
-        
+
         self.display_type = os.getenv('DISPLAY_TYPE')
         self.button_type = os.getenv('BUTTON_TYPE')
         self.io = IO()
-        
+
         if self.display_type == 'SH1106_SPI':
-            self.display = SH1106_SPI(width=128, height=64, 
+            self.display = SH1106_SPI(width=128, height=64,
                                         spi=self.io.get_spi(),
                                         dc=PinAdapter(21, self.io.get_pigpio()),
                                         res=PinAdapter(22, self.io.get_pigpio()),
@@ -53,7 +53,7 @@ class SystemUI(metaclass=SingletonMeta):
             self.display.show()
 
         elif self.display_type == 'SSD1306_SPI':
-            self.display = SSD1306_SPI(width=128, height=64, 
+            self.display = SSD1306_SPI(width=128, height=64,
                                         spi=self.io.get_spi(),
                                         dc=digitalio.DigitalInOut( digitalio.D21 ),
                                         reset=None,
@@ -62,33 +62,33 @@ class SystemUI(metaclass=SingletonMeta):
             self.display.show()
 
         elif self.display_type == 'SH1106_I2C':
-                
-            self.display = SH1106_I2C(width=128, height=64, 
-                                        i2c=self.io.get_i2c(), 
+
+            self.display = SH1106_I2C(width=128, height=64,
+                                        i2c=self.io.get_i2c(),
                                         addr=0x3C,
                                     )
             self.display.flip(True)
             # self.display.contrast(128)      # Helligkeitsstufe 6
             self.display.show()
-            
+
         elif self.display_type == 'SSD1306_I2C':
-            self.display = SSD1306_I2C(width=128, height=64, 
-                                        i2c=self.io.get_i2c(), 
+            self.display = SSD1306_I2C(width=128, height=64,
+                                        i2c=self.io.get_i2c(),
                                         addr=0x3C,
                                     )
             # self.display.contrast(128)      # Helligkeitsstufe 6
             self.display.show()
         else:
             raise DisplayInitializationException(f'DISPLAY_TYPE {self.display_type} on config not supported!')
-        
+
         self.__set_contrast(self.config.get('display_contrast', 2))
-        
+
         # init controls
         if self.button_type == 'ROTARY': self.controls = RotaryControls()
         else: self.controls = ButtonControls()
-        
+
         self.input: Union[Input,None] = None
-        
+
         # create and store menu
         self.main_menu: Menu = Menu.create_from_map(self, map={
             'Geraete Info':     lambda: self.show_system_info(),
@@ -150,12 +150,15 @@ class SystemUI(metaclass=SingletonMeta):
             self.turn_off_timer = threading.Timer(seconds, lambda:self.display_off())
             self.turn_off_timer.start()
         return True
-            
+
     def __set_auto_off(self, step: int):
         self.config.set('auto_off_time', step)
         self.__set_contrast()
         return True
-        
+
+    def show_menu(self):
+        self.main_menu.activate()
+
     def show_system_info(self):
         self.__set_contrast(static=True)
         self.display.fill(0)
@@ -173,7 +176,7 @@ class SystemUI(metaclass=SingletonMeta):
         self.display.show()
         self.controls.reset_callbacks()
         self.controls.on_any(lambda: self.main_menu.activate())
-        
+
     def display_off(self):
         self.display.fill(BLACK)
         self.display.show()
@@ -182,75 +185,77 @@ class SystemUI(metaclass=SingletonMeta):
         self.controls.on_any(lambda: self.display.poweron())
         self.controls.on_any(lambda: self.main_menu.activate())
 
-        
+    def show_menu(self):
+        self.main_menu.activate()
+
     def show_WLAN_SSID_input(self):
         self.__set_contrast(static=True)
-        def print_and_to_menu(input: str): 
+        def print_and_to_menu(input: str):
             get_logger().debug(f'save WLAN_SSID: {input}')
             self.config.set('WLAN_SSID', input)
             self.main_menu.activate()
-        Input( 
-            display=self.display, 
-            controls=self.controls, 
+        Input(
+            display=self.display,
+            controls=self.controls,
             okay_func=lambda text: print_and_to_menu(text),
-            stop_func=lambda: self.main_menu.activate(), 
-            title='WLAN SSID', 
+            stop_func=lambda: self.main_menu.activate(),
+            title='WLAN SSID',
             value=self.config.get('WLAN_SSID', '')
         )
 
-       
+
     def show_WLAN_passwd_input(self):
         self.__set_contrast(static=True)
-        def print_and_to_menu(input: str): 
+        def print_and_to_menu(input: str):
             get_logger().debug(f'save WLAN_passwd: {input}')
             self.config.set('WLAN_passwd', input)
             self.main_menu.activate()
         Input(
             display=self.display,
             controls=self.controls,
-            okay_func=lambda text: print_and_to_menu(text), 
-            stop_func=lambda: self.main_menu.activate(), 
-            title='WLAN Passwort', 
+            okay_func=lambda text: print_and_to_menu(text),
+            stop_func=lambda: self.main_menu.activate(),
+            title='WLAN Passwort',
             value=''
         )
-        
+
     def __show_restart_dialog(self):
         self.__set_contrast(static=True)
         def restart_system():
             get_logger().warning('App restart command received')
             self.show_info('System Startet jetzt neu. Bitte warten...')
             output = subprocess.run(['sudo', 'reboot'], capture_output=True, text=True)
-            if output.returncode != 0: 
+            if output.returncode != 0:
                 get_logger().error(output.stderr)
             else:
                 get_logger().warning(f'The system will reboot now! {output.stdout}')
-        Confirm( 
-            display=self.display, 
-            controls=self.controls, 
-            okay_func=lambda: restart_system(), 
-            cancel_func=lambda: self.main_menu.activate(), 
-            title='Neustart', 
+        Confirm(
+            display=self.display,
+            controls=self.controls,
+            okay_func=lambda: restart_system(),
+            cancel_func=lambda: self.main_menu.activate(),
+            title='Neustart',
             text='Wollen Sie wirklich das System Neustarten?'
         )
-                
+
     def show_info(self, text='Ein unbekannter Fehler ist aufgetreten', title='Info'):
         self.__set_contrast(static=True)
         self.display.fill(BLACK)
-        
+
         # self.display.text('Error', 36, 4, WHITE, size=2)
         self.display.text(title, int(self.display.width / 2) - len(title) * 6, 4, WHITE, size=2)
-        
+
         length=20
         lines = [text[i:i+length] for i in range(0, len(text), length)]
         for index, line in enumerate(lines):
             self.display.text(line.strip(), 5, 24 + index * 8, WHITE)
-        
+
         self.display.show()
         self.controls.reset_callbacks()
         self.controls.on_any(lambda: self.main_menu.activate())
 
     def on_destroy(self):
-        self.display.fill(BLACK) 
+        self.display.fill(BLACK)
         self.display.show()
         self.display.poweroff()
 
@@ -258,7 +263,7 @@ class SystemUI(metaclass=SingletonMeta):
 
 
 if __name__ == "__main__":
-    
+
     # Basic example of clearing and drawing pixels on a SSD1306 OLED display.
     # This example and library is meant to work with Adafruit CircuitPython API.
     # Author: Tony DiCola
