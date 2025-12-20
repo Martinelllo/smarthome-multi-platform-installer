@@ -27,21 +27,21 @@ __pin_gpio_map = {
     40: 21   # Pin 40 -> GPIO 21
 }
 
-def get_gpio_for(pin):
+def map_gpio_for(pin):
     return __pin_gpio_map.get(pin)
 
 
 if __name__ == "__main__":
-    
+
     # Beispiel für die Verwendung
     import pigpio
     pi = pigpio.pi()
-    
+
     pin_number: 3
     pin_value: 1
-    
-    gpio = get_gpio_for(pin_number)
-    
+
+    gpio = map_gpio_for(pin_number)
+
     if gpio is not None:
         pi.write(gpio, pin_value)
     else:

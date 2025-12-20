@@ -12,7 +12,7 @@ from custom_libs.dht_reader import DHTSensor
 
 from typing import Union
 
-from helper.pin_to_gpio import get_gpio_for
+from helper.pin_to_gpio import map_gpio_for
 from core.logger import get_logger
 from core.io import IO
 from core.temp_db import TempDB
@@ -21,18 +21,18 @@ from core.temp_db import TempDB
 class DHTReadingModule(ModuleBase):
     def __init__(self, module_config: ModuleConfig):
         self.module_config = module_config
-        self.dht = DHTSensor(IO().get_pigpio(), get_gpio_for(module_config.get_pin_by_key('PIN')))
+        self.dht = DHTSensor(IO().get_pigpio(), map_gpio_for(module_config.get_pin_by_key('PIN')))
         self.next_time = time.time()
         self.db = TempDB()
 
     def get_config(self) -> ModuleConfig:
         return self.module_config
-    
+
     def set_config(self, module_config: ModuleConfig):
         self.module_config = module_config
-        
+
     def tick(self):
-        
+
         now = time.time()
 
         if self.next_time > now: return
@@ -53,13 +53,13 @@ class DHTReadingModule(ModuleBase):
                     "sensorId": sensor.get_id(),
                     "value": round(self.dht.humidity(), 2)
                 })
-                
+
         self.db.safe_sensor_readings(sensorValues)
         self.next_time += self.module_config.get_interval()
 
     def on_destroy(self):
         pass
-    
+
 if __name__ == "__main__":
 
 
@@ -109,12 +109,12 @@ if __name__ == "__main__":
         time.sleep(0.5)
 
         print("{} {} {} {:3.2f} {} {} {} {}".format(
-            r, 
-            s.humidity(), 
-            s.temperature(), 
+            r,
+            s.humidity(),
+            s.temperature(),
             s.staleness(),
-            s.bad_checksum(), 
-            s.short_message(), 
+            s.bad_checksum(),
+            s.short_message(),
             s.missing_message(),
             s.sensor_resets()
         ))
@@ -136,7 +136,7 @@ if __name__ == "__main__":
             print(response.text)
         except:
             print('request error')
-        
+
         utcTimeStamp = datetime.utcnow().timestamp()
         humidityData  = {
             "sensorId": 2,
@@ -154,8 +154,8 @@ if __name__ == "__main__":
 
         print("{}, Hum: {:3.2f}%, Temp: {:3.2f}°C".format(
             datetime.strftime(currentTime, '%X'),
-            s.humidity(), 
-            s.temperature(), 
+            s.humidity(),
+            s.temperature(),
         ))
 
         time.sleep(INTERVAL-0.5)  # Overall INTERVAL second polling.
