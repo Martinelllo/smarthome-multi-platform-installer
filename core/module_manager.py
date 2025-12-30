@@ -22,10 +22,14 @@ class ModuleManager(metaclass=SingletonMeta):
 
     def __init__(self) -> None:
         self.__modules: list[ModuleBase] = []
-        
+
     def tick(self):
         for module in self.__modules:
-            module.tick()
+            try:
+                module.tick()
+            except Exception as error:
+                get_logger().error(f"Error on module tick for module id: {module.get_config().get_id()}: {error}")
+                raise error
 
     def setup_modules(self, deviceConfig: DeviceConfig):
 
@@ -42,10 +46,10 @@ class ModuleManager(metaclass=SingletonMeta):
 
         # create new modules or patch module configs
         for config in module_configs:
-            # if config module id is on the config of a running module return it and stop and patch the config 
+            # if config module id is on the config of a running module return it and stop and patch the config
             module = next((m for m in self.__modules if config.get_id() == m.get_config().get_id()), None)
             # get_logger().debug(F"Module: {config.module_type} with id: {config.module_id} -> moduleExists {len(modulesFound) > 0}")
-            
+
             if module is not None: # update config of module
                 module.set_config(config)
                 # get_logger().debug(F"Module: {config.module_type} with id: {config.module_id} updates config")
@@ -70,14 +74,14 @@ class ModuleManager(metaclass=SingletonMeta):
         if moduleConf.is_type("PWM"):           return PWMControlModule(moduleConf)
         # Hybrid
         if moduleConf.is_type("OPEN_CLOSE"):    return OpenCloseControlModule(moduleConf)
-        
+
         raise ValueError("Module type '%s' not supported" %(moduleConf.type) )
 
     def on_destroy(self):
         for existing_module in self.__modules:
             existing_module.on_destroy()
             self.__modules.remove(existing_module)
-        
-        
+
+
 if __name__ == "__main__":
    pass

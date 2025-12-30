@@ -58,7 +58,7 @@ class HCSR04Module(ModuleBase):
 
         time.sleep(0.15) # max distance is 4 meters so the max time is 0,01166180758017492711370262390671 seconds
 
-        print(f"echo_time {self.echo_time}µs = distance {self._get_current_value()}mm")
+        # print(f"echo_time {self.echo_time}µs = distance {self._get_current_value()}mm")
 
         if self.echo_time is None: return
 
@@ -71,6 +71,8 @@ class HCSR04Module(ModuleBase):
         self.next_time += self.module_config.get_interval()
 
     def _get_current_value(self) -> float:
+        if self.echo_time is None:
+            return -1
         return self.echo_time * CONSTANT_SOUND_SPEED / 2
 
     def trigger(self):
