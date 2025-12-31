@@ -17,7 +17,7 @@ DATA_BACKUP="/tmp/multi-platform.data"
 LOCKFILE="/tmp/multi-platform-installer.lock"
 
 UPDATE_INTERVAL_DAYS=7
-UPDATE_FILE="/tmp/last_update"
+UPDATE_FILE="/tmp/last_update.txt"
 
 # ───────────────────────────────
 # Lock gegen parallele Läufe
