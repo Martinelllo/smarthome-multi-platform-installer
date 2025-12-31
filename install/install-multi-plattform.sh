@@ -17,7 +17,7 @@ DATA_BACKUP="/tmp/multi-platform.data"
 LOCKFILE="/tmp/multi-platform-installer.lock"
 
 UPDATE_INTERVAL_DAYS=7
-UPDATE_FILE="/home/pi/multi-platform/data/last_update.txt"
+UPDATE_FILE="/tmp/last_update"
 
 # ───────────────────────────────
 # Lock gegen parallele Läufe
