@@ -16,6 +16,9 @@ DATA_BACKUP="/tmp/multi-platform.data"
 
 LOCKFILE="/tmp/multi-platform-installer.lock"
 
+UPDATE_INTERVAL_DAYS=7
+UPDATE_FILE="/home/pi/multi-platform/data/last_update.txt"
+
 # ───────────────────────────────
 # Lock gegen parallele Läufe
 # ───────────────────────────────
@@ -29,10 +32,30 @@ flock -n 9 || exit 0
 ( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
 
 # ───────────────────────────────
+# System Updates
+# ───────────────────────────────
+UPDATE_NEEDED=false
+if [ ! -f "$UPDATE_FILE" ]; then
+    UPDATE_NEEDED=true
+else
+    LAST_UPDATE=$(cat "$UPDATE_FILE")
+    NOW=$(date +%s)
+    DIFF=$(( (NOW - LAST_UPDATE) / 86400 ))  # Sekunden → Tage
+    if [ "$DIFF" -ge "$UPDATE_INTERVAL_DAYS" ]; then
+        UPDATE_NEEDED=true
+    fi
+fi
+if [ "$UPDATE_NEEDED" = true ]; then
+    sudo apt-get update -y
+    date +%s > "$UPDATE_FILE"
+fi
+
+# ───────────────────────────────
 # Basisabhängigkeiten
 # ───────────────────────────────
-sudo apt-get update -y
-sudo apt-get install -y git
+if ! command -v git >/dev/null 2>&1; then
+    sudo apt-get install -y git
+fi
 
 # ───────────────────────────────
 # Prüfen, ob Installation nötig ist
