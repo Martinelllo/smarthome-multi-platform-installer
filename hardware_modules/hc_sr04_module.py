@@ -35,11 +35,12 @@ class HCSR04Module(ModuleBase):
         self.start_time = None
         self.echo_time = None
 
-        self.cb1 = self.pi.callback(self.echo_pin, pigpio.RISING_EDGE, lambda gpio, level, tick: self.send_echo(tick))
-        self.cb2 = self.pi.callback(self.echo_pin, pigpio.FALLING_EDGE, lambda gpio, level, tick: self.receive_echo(tick))
+        self.cb1 = self.pi.callback(self.echo_pin, pigpio.RISING_EDGE, lambda gpio, level, tick: self.noise_send(tick))
+        self.cb2 = self.pi.callback(self.echo_pin, pigpio.FALLING_EDGE, lambda gpio, level, tick: self.echo_received(tick))
+
+        self.errors = 0
 
         self.db = TempDB()
-
 
     def get_config(self) -> ModuleConfig:
         return self.module_config
@@ -48,6 +49,9 @@ class HCSR04Module(ModuleBase):
         self.module_config = module_config
 
     def tick(self):
+        if self.errors > 0:
+            raise Exception(f"HCSR04Module id {self.module_config.get_id()} has {self.errors} errors")
+
         now = time.time()
 
         if self.next_time > now: return
@@ -82,11 +86,17 @@ class HCSR04Module(ModuleBase):
         time.sleep(0.00001),  # 10 us delay
         self.pi.write(self.trigger_pin, pigpio.HIGH)
 
-    def send_echo(self, us):
-        self.start_time = us
+    def noise_send(self, us):
+        try:
+            self.start_time = us
+        except Exception as error:
+            self.errors += 1
 
-    def receive_echo(self, us):
-        self.echo_time = us - self.start_time
+    def echo_received(self, us):
+        try:
+            self.echo_time = us - self.start_time
+        except Exception as error:
+            self.errors += 1
 
     def on_destroy(self):
         self.cb1.cancel()

@@ -29,7 +29,12 @@ class ModuleManager(metaclass=SingletonMeta):
                 module.tick()
             except Exception as error:
                 get_logger().error(f"Error on module tick for module id: {module.get_config().get_id()}: {error}")
-                raise error
+                module.on_destroy()
+                self.__modules.remove(module)
+                new_module = self.__create_module(module.get_config())
+                self.__modules.append(new_module)
+                get_logger().debug(f"Module with  id: {module.get_config().get_id()} restarted")
+
 
     def setup_modules(self, deviceConfig: DeviceConfig):
 
@@ -68,7 +73,7 @@ class ModuleManager(metaclass=SingletonMeta):
         if moduleConf.is_type("DHT"):           return DHTReadingModule(moduleConf)
         if moduleConf.is_type("BME280"):        return BME280ReadingModule(moduleConf)
         if moduleConf.is_type("BOOLEAN_READ"):  return BooleanReadingModule(moduleConf)
-        if moduleConf.is_type("HC-SR04"):      return HCSR04Module(moduleConf)
+        if moduleConf.is_type("HC-SR04"):       return HCSR04Module(moduleConf)
         # Controller
         if moduleConf.is_type("BOOLEAN_WRITE"): return BooleanControlModule(moduleConf)
         if moduleConf.is_type("PWM"):           return PWMControlModule(moduleConf)
