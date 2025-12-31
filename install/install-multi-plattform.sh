@@ -32,7 +32,7 @@ flock -n 9 || exit 0
 # Basisabhängigkeiten
 # ───────────────────────────────
 sudo apt-get update -y
-sudo apt-get install -y git python3-pip pigpio python3-smbus i2c-tools
+sudo apt-get install -y git
 
 # ───────────────────────────────
 # Prüfen, ob Installation nötig ist
