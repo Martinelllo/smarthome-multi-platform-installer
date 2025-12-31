@@ -100,6 +100,7 @@ if [ "$INSTALLATION" = true ]; then
         cp "$PROJECT_DIR/.env_dist" "$PROJECT_DIR/.env"
     fi
     if [ -f "$DATA_BACKUP" ]; then
+        mkdir -p "$PROJECT_DIR/data"
         cp "$DATA_BACKUP" "$PROJECT_DIR/data/config.json"
     fi
 
