@@ -83,9 +83,10 @@ if [ "$INSTALLATION" = true ]; then
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
     if [ -f "$PROJECT_DIR" ]; then
-        git -C "$PROJECT_DIR" fetch origin
-        git -C "$PROJECT_DIR" checkout main
-        git -C "$PROJECT_DIR" reset --hard origin/main
+        cd "$PROJECT_DIR"
+        git fetch origin
+        git checkout main
+        git reset --hard origin/main
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
