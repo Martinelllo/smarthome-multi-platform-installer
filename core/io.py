@@ -35,7 +35,7 @@ class IO(metaclass=SingletonMeta):
 
     def get_i2c(self):
         if self.__i2c == None:
-            self.__i2c = busio.I2C(scl=board.SCL, sda=board.SDA, freq=100000)
+            self.__i2c = busio.I2C(scl=board.SCL, sda=board.SDA, frequency=100000)
             get_logger().info("Initialize i2c bus")
         return self.__i2c
 
