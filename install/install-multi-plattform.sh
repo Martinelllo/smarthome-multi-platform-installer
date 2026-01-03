@@ -82,8 +82,10 @@ fi
 if [ "$INSTALLATION" = true ]; then
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
-    if [ -f "$PROJECT_DIR" ]; then
+    if [ -d "$PROJECT_DIR" ]; then
         cd "$PROJECT_DIR"
+        git init
+        git remote add origin "$REPO_URL"
         git fetch origin
         git reset --hard origin/main
     else
