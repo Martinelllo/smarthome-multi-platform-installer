@@ -71,6 +71,10 @@ def main():
             # on each tick the modules check there tasks and do some stuf eg. writing sensor values to the db
             module_manager.tick()
 
+            # display is possibly not available. we catch the not available error here
+            if 'system_ui' in locals():
+                system_ui.tick()
+
             try:
                 if next_contact <= time.time():
                     if led is not None: led.blink()
