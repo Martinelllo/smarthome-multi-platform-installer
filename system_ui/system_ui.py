@@ -6,7 +6,6 @@ import subprocess
 import board
 import digitalio
 import threading
-import time
 
 from typing import Union
 
@@ -82,8 +81,6 @@ class SystemUI(metaclass=SingletonMeta):
         else:
             raise DisplayInitializationException(f'DISPLAY_TYPE {self.display_type} on config not supported!')
 
-        self.last_tick = time.time()
-
         self.__set_contrast(self.config.get('display_contrast', 2))
 
         # init controls
@@ -122,7 +119,7 @@ class SystemUI(metaclass=SingletonMeta):
             'Display Aus': lambda: self.display_off(),
         })
         # restore current menu option
-        self.main_menu.set_state({
+        self.main_menu.patch_pointers({
             'System Einstellungen': {
                 'Kontrast': self.config.get('display_contrast', 2),
                 'Auto Off': self.config.get('auto_off_time', 0)
@@ -263,46 +260,6 @@ class SystemUI(metaclass=SingletonMeta):
         self.display.poweroff()
 
 
-    def tick(self):
-        now = time.time()
-        if now - self.last_tick < 60: return
-        self.last_tick = now
-
-        if self.display_type == 'SH1106_SPI':
-            self.display = SH1106_SPI(width=128, height=64,
-                                        spi=self.io.get_spi(),
-                                        dc=PinAdapter(21, self.io.get_pigpio()),
-                                        res=PinAdapter(22, self.io.get_pigpio()),
-                                        cs=PinAdapter(8, self.io.get_pigpio())
-                                    )
-            self.display.show()
-
-        elif self.display_type == 'SSD1306_SPI':
-            self.display = SSD1306_SPI(width=128, height=64,
-                                        spi=self.io.get_spi(),
-                                        dc=digitalio.DigitalInOut( digitalio.D21 ),
-                                        reset=None,
-                                        cs=digitalio.DigitalInOut( digitalio.D8 ),
-                                    )
-            self.display.show()
-
-        elif self.display_type == 'SH1106_I2C':
-
-            self.display = SH1106_I2C(width=128, height=64,
-                                        i2c=self.io.get_i2c(),
-                                        addr=0x3C,
-                                    )
-            self.display.flip(True)
-            # self.display.contrast(128)      # Helligkeitsstufe 6
-            self.display.show()
-
-        elif self.display_type == 'SSD1306_I2C':
-            self.display = SSD1306_I2C(width=128, height=64,
-                                        i2c=self.io.get_i2c(),
-                                        addr=0x3C,
-                                    )
-            # self.display.contrast(128)      # Helligkeitsstufe 6
-            self.display.show()
 
 
 if __name__ == "__main__":

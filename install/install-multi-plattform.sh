@@ -82,26 +82,19 @@ fi
 if [ "$INSTALLATION" = true ]; then
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
+    if [ -f "$PROJECT_DIR" ]; then
+        git -C "$PROJECT_DIR" fetch origin
+        git -C "$PROJECT_DIR" checkout main
+        git -C "$PROJECT_DIR" reset --hard origin/main
+    else
+        git clone "$REPO_URL" "$PROJECT_DIR"
+    fi
+
     # .env and data sichern
     if [ -f "$PROJECT_DIR/.env" ]; then
-        cp "$PROJECT_DIR/.env" "$ENV_BACKUP"
-    fi
-    if [ -f "$PROJECT_DIR/data/config.json" ]; then
-        cp "$PROJECT_DIR/data/config.json" "$DATA_BACKUP"
-    fi
-
-    rm -rf "$PROJECT_DIR"
-    git clone "$REPO_URL" "$PROJECT_DIR"
-
-    # .env and data wiederherstellen
-    if [ -f "$ENV_BACKUP" ]; then
-        cp "$ENV_BACKUP" "$PROJECT_DIR/.env"
+        # cp "$PROJECT_DIR/.env" "$ENV_BACKUP"
     else
         cp "$PROJECT_DIR/.env_dist" "$PROJECT_DIR/.env"
-    fi
-    if [ -f "$DATA_BACKUP" ]; then
-        mkdir -p "$PROJECT_DIR/data"
-        cp "$DATA_BACKUP" "$PROJECT_DIR/data/config.json"
     fi
 
     sudo chmod 644 "$PROJECT_DIR/main.py"
