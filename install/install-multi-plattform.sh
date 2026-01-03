@@ -90,10 +90,8 @@ if [ "$INSTALLATION" = true ]; then
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
 
-    # .env and data sichern
-    if [ -f "$PROJECT_DIR/.env" ]; then
-        # cp "$PROJECT_DIR/.env" "$ENV_BACKUP"
-    else
+    # .env anlegen, falls sie nicht existiert
+    if [ ! -f "$PROJECT_DIR/.env" ]; then
         cp "$PROJECT_DIR/.env_dist" "$PROJECT_DIR/.env"
     fi
 
