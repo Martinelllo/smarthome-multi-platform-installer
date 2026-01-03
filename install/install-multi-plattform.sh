@@ -85,7 +85,6 @@ if [ "$INSTALLATION" = true ]; then
     if [ -f "$PROJECT_DIR" ]; then
         cd "$PROJECT_DIR"
         git fetch origin
-        git checkout main
         git reset --hard origin/main
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
