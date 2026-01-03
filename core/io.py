@@ -29,7 +29,7 @@ class IO(metaclass=SingletonMeta):
 
     def get_spi(self):
         if self.__spi == None:
-            self.__spi = busio.SPI(board.SCLK, board.MOSI, board.MISO)
+            self.__spi = busio.SPI(clock=board.SCLK, MOSI=board.MOSI, MISO=board.MISO)
             get_logger().info("Initialize spi bus")
         return self.__spi
 
