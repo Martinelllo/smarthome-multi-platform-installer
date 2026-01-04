@@ -7,6 +7,7 @@ set -e
 PROJECT_DIR="/home/pi/multi-platform"
 SERVICE_DIR="/etc/systemd/system/multi_module_platform.service"
 REPO_URL="https://github.com/Martinelllo/smarthome-multi-platform-installer.git"
+BRANCH=main
 
 CRON_CMD="curl -sL https://raw.githubusercontent.com/Martinelllo/smarthome-multi-platform-installer/main/install/install-multi-plattform.sh | bash"
 CRON_JOB="*/1 * * * * $CRON_CMD" # Jede Minute
@@ -60,12 +61,6 @@ fi
 # ───────────────────────────────
 # Prüfen, ob Installation nötig ist
 # ───────────────────────────────
-BRANCH=$(git remote show origin | sed -n 's/.*HEAD branch: //p')
-if [ -z "$BRANCH" ]; then
-    echo "Konnte Default-Branch nicht ermitteln"
-    exit 1
-fi
-
 INSTALLATION=false
 if [ ! -d "$PROJECT_DIR/.git" ]; then
     INSTALLATION=true
@@ -110,7 +105,7 @@ if [ "$INSTALLATION" = true ]; then
     else
         rm "$PROJECT_DIR/.env_dist"
     fi
-    
+
     sudo chmod 644 "$PROJECT_DIR/main.py"
 
     # install python3 and pip
