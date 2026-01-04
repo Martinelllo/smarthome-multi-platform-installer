@@ -60,16 +60,22 @@ fi
 # ───────────────────────────────
 # Prüfen, ob Installation nötig ist
 # ───────────────────────────────
-INSTALLATION=false
+BRANCH=$(git remote show origin | sed -n 's/.*HEAD branch: //p')
+if [ -z "$BRANCH" ]; then
+    echo "Konnte Default-Branch nicht ermitteln"
+    exit 1
+fi
 
+INSTALLATION=false
 if [ ! -d "$PROJECT_DIR/.git" ]; then
     INSTALLATION=true
 else
-    cd "$PROJECT_DIR"
+    cd "$PROJECT_DIR" || exit 1
+
     git fetch origin
 
     LOCAL_HASH=$(git rev-parse HEAD)
-    REMOTE_HASH=$(git rev-parse origin/HEAD)
+    REMOTE_HASH=$(git rev-parse "origin/$BRANCH")
 
     if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
         INSTALLATION=true
@@ -82,15 +88,10 @@ fi
 if [ "$INSTALLATION" = true ]; then
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
-    if [ -d "$PROJECT_DIR" ]; then
-        rm -rf "$PROJECT_DIR/.git"
+    if [ -d "$PROJECT_DIR/.git" ]; then
         cd "$PROJECT_DIR"
-
-        git init
-        git remote add origin "$REPO_URL"
         git fetch origin
-        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
-        git checkout -B "${DEFAULT_BRANCH#origin/}" "$DEFAULT_BRANCH"
+        git reset --hard "origin/$BRANCH"
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
@@ -98,7 +99,10 @@ if [ "$INSTALLATION" = true ]; then
     # .env anlegen, falls sie nicht existiert
     if [ ! -f "$PROJECT_DIR/.env" ]; then
         cp "$PROJECT_DIR/.env_dist" "$PROJECT_DIR/.env"
+    else
+        rm "$PROJECT_DIR/.env_dist"
     fi
+
 
     sudo chmod 644 "$PROJECT_DIR/main.py"
 
