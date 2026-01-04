@@ -85,11 +85,12 @@ if [ "$INSTALLATION" = true ]; then
     if [ -d "$PROJECT_DIR" ]; then
         rm -rf "$PROJECT_DIR/.git"
         cd "$PROJECT_DIR"
+
         git init
         git remote add origin "$REPO_URL"
         git fetch origin
-        git remote set-head origin -a
-        git reset --hard origin/HEAD
+        DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+        git checkout -B "${DEFAULT_BRANCH#origin/}" "$DEFAULT_BRANCH"
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
