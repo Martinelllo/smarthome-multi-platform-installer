@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# set -e # Exit instantly on error
+set -e # Exit instantly on error
 
 # ───────────────────────────────
 # Konfiguration
