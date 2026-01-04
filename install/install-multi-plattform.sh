@@ -96,7 +96,6 @@ if [ "$INSTALLATION" = true ]; then
     fi
 
     git fetch origin
-    git checkout -B "$BRANCH" "origin/$BRANCH"
     git reset --hard "origin/$BRANCH"
 
     # .env anlegen, falls sie nicht existiert
