@@ -10,7 +10,11 @@ REPO_URL="https://github.com/Martinelllo/smarthome-multi-platform-installer.git"
 BRANCH=main
 
 CRON_CMD="curl -sL https://raw.githubusercontent.com/Martinelllo/smarthome-multi-platform-installer/main/install/install-multi-plattform.sh | bash"
-CRON_JOB="*/5 * * * * $CRON_CMD" # Jede Minute
+CRON_SCHEDULE="*/5 * * * *" # Intervall 5 Minuten (kann geändert werden)
+CRON_TAG="# smarthome-multi-platform" # Markierung für sicheren Ersatz
+
+# komplette Cron-Zeile
+CRON_JOB="$CRON_SCHEDULE $CRON_CMD $CRON_TAG"
 
 ENV_BACKUP="/tmp/multi-platform.env"
 DATA_BACKUP="/tmp/multi-platform.data"
@@ -27,9 +31,12 @@ exec 9>"$LOCKFILE" || exit 1
 flock -n 9 || exit 0
 
 # ───────────────────────────────
-# Cronjob sicherstellen finden und überschreiben
+# Alte Cronjobs mit diesem Tag entfernen, neue Zeile hinzufügen
 # ───────────────────────────────
-( crontab -l 2>/dev/null | grep -Fv "install-multi-plattform" echo "$CRON_JOB") | crontab -
+(
+  crontab -l 2>/dev/null | grep -Fv "$CRON_TAG"
+  echo "$CRON_JOB"
+) | crontab -
 
 # ───────────────────────────────
 # System Updates
