@@ -23,6 +23,9 @@ class ModuleManager(metaclass=SingletonMeta):
     def __init__(self) -> None:
         self.__modules: list[ModuleBase] = []
 
+    def get_modules(self) -> list[ModuleBase]:
+        return self.__modules
+
     def tick(self):
         for module in self.__modules:
             try:

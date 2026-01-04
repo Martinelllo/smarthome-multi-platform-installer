@@ -14,50 +14,50 @@ from core.logger import get_logger
 from core.api_client import APIClient
 from core.io import IO
 from exceptions.module_exception import ModuleInitializationException
-from core.temp_db import TempDB
+from core.lokal_db import LokalDB
 
 
 class BME280ReadingModule(ModuleBase):
     def __init__(self, config: ModuleConfig):
         self.config = config
         self.next_time = time.time()
-        
+
         try:
             self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(IO().get_i2c(), address=0x76)
             self.bme280.mode = adafruit_bme280.MODE_NORMAL
             self.bme280.temperature # init
         except Exception as error:
             raise ModuleInitializationException(
-                message=str(error), 
-                module_class=F"BME280ReadingModule", 
+                message=str(error),
+                module_class=F"BME280ReadingModule",
                 module_name=config.name
             )
-        
-        self.db = TempDB()
-        
+
+        self.db = LokalDB()
+
         time.sleep(0.5)
 
     def get_config(self) -> ModuleConfig:
         return self.config
-      
+
     def set_config(self, module_config: ModuleConfig):
         self.config = module_config
-    
+
     def tick(self):
-        
+
         now = time.time()
-        
+
         if self.next_time > now: return
-        
+
         sensorValues = []
         for sensor in self.config.get_sensors():
-                            
+
             if sensor.is_type("Temperatur"):
                 sensorValues.append({
                     "sensorId": sensor.get_id(),
                     "value": round(self.bme280.temperature, 2)
                 })
-            
+
             if sensor.is_type("Relative Luftfeuchtigkeit"):
                 sensorValues.append({
                     "sensorId": sensor.get_id(),
@@ -72,11 +72,11 @@ class BME280ReadingModule(ModuleBase):
 
         self.db.safe_sensor_readings(sensorValues)
         self.next_time += self.config.get_interval()
-        
-    
+
+
     def on_destroy(self):
         pass
-    
+
 
 if __name__ == "__main__":
 

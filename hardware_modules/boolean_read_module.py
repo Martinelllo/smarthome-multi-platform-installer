@@ -13,7 +13,7 @@ from abstract_base_classes.module_base import ModuleBase
 from entities.config_entity import ModuleConfig
 from helper.pin_to_gpio import map_gpio_for
 from core.io import IO
-from core.temp_db import TempDB
+from core.lokal_db import LokalDB
 
 
 class BooleanReadingModule(ModuleBase):
@@ -23,7 +23,7 @@ class BooleanReadingModule(ModuleBase):
         self.gpio_number = map_gpio_for(module_config.get_pin_by_key('PIN'))
         self.pi = IO().get_pigpio()
         self.pi.set_mode(self.gpio_number, pigpio.INPUT)
-        self.db = TempDB()
+        self.db = LokalDB()
 
 
     def get_config(self) -> ModuleConfig:

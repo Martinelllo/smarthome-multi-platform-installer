@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: utf8 -*-
 
+from itertools import chain
 import os
 import subprocess
 import board
 import digitalio
 import threading
+import time
 
 from typing import Union
 
@@ -13,11 +15,12 @@ from custom_libs.adafruid_ssd1306 import SSD1306_I2C, SSD1306_SPI
 from helper.platform_detector import get_cpu_temperature, get_platform_model
 from core.logger import get_logger
 from helper.pin_adapter import PinAdapter
-from abstract_base_classes.ui_controls import UIControls
 from abstract_base_classes.singleton_meta import SingletonMeta
 from core.io import IO
 from exceptions.display_exception import DisplayInitializationException
 from core.config_storage import ConfigStorage
+from core.api_client import APIClient
+from entities.config_entity import ControllerConfig, DeviceConfig, SensorConfig
 from system_ui.confirm import Confirm
 from system_ui.rotary_controls import RotaryControls
 from system_ui.input import Input
@@ -36,11 +39,14 @@ class SystemUI(metaclass=SingletonMeta):
 
         self.config = ConfigStorage()
 
+        self.last_tick = time.time()
+
         self.turn_dark_timer: Union[threading.Timer, None] = None
         self.turn_off_timer: Union[threading.Timer, None] = None
 
         self.display_type = os.getenv('DISPLAY_TYPE')
         self.button_type = os.getenv('BUTTON_TYPE')
+
         self.io = IO()
 
         if self.display_type == 'SH1106_SPI':
@@ -68,8 +74,6 @@ class SystemUI(metaclass=SingletonMeta):
                                         addr=0x3C,
                                     )
             self.display.flip(True)
-            # self.display.contrast(128)      # Helligkeitsstufe 6
-            self.display.show()
 
         elif self.display_type == 'SSD1306_I2C':
             self.display = SSD1306_I2C(width=128, height=64,
@@ -84,50 +88,59 @@ class SystemUI(metaclass=SingletonMeta):
         self.__set_contrast(self.config.get('display_contrast', 2))
 
         # init controls
-        if self.button_type == 'ROTARY': self.controls = RotaryControls()
-        else: self.controls = ButtonControls()
+        if self.button_type == 'ROTARY':
+            self.controls = RotaryControls()
+        else:
+            self.controls = ButtonControls()
 
-        self.input: Union[Input,None] = None
+        api_client = APIClient()
+        modules = []
+        try:
+            modules = DeviceConfig(api_client.get_device_config()).get_all_configs()
+        except Exception as e:
+            get_logger().error(f"Could not fetch device config from server: {e}")
 
         # create and store menu
         self.main_menu: Menu = Menu.create_from_map(self, map={
-            'Geraete Info':     lambda: self.show_system_info(),
-            'Module Anzeigen':  lambda: self.show_info('Module Anzeigen ist noch nicht implementiert.'),
+            'Geraete Info':    lambda: self.show_system_info(),
+            'Modul Config Anzeigen': {
+                f"{module.type[0:15]} ({module.id})": {
+                    f"{moduleChild.type[0:15]} ({moduleChild.id})": lambda: self.show_module_child(moduleChild)
+                    for moduleChild in chain(module.module_sensors, module.module_controllers)
+                } for module in modules
+            },
             'System Einstellungen': {
                 'WLAN aendern': {
-                    'WLAN SSID': lambda:        self.show_WLAN_SSID_input(),
-                    'WLAN Passwort': lambda:    self.show_WLAN_passwd_input(),
+                    'WLAN SSID':     lambda: self.show_WLAN_SSID_input(),
+                    'WLAN Passwort': lambda: self.show_WLAN_passwd_input(),
                 },
                 'Kontrast': {
-                    'Stufe 1': lambda: self.__set_contrast(0),
-                    'Stufe 2': lambda: self.__set_contrast(1),
-                    'Stufe 3': lambda: self.__set_contrast(2),
-                    'Stufe 4': lambda: self.__set_contrast(3),
-                    'Stufe 5': lambda: self.__set_contrast(4),
-                    'Stufe 6': lambda: self.__set_contrast(5),
+                    f'Stufe {step}': lambda: self.__set_contrast(step) for step in range(6)
                 },
                 'Auto Off': {
-                    'Immer an':     lambda: self.__set_auto_off(0),
-                    '10 Sekunden':  lambda: self.__set_auto_off(1),
-                    '1 minute':     lambda: self.__set_auto_off(2),
-                    '2 minute':     lambda: self.__set_auto_off(3),
-                    '10 minute':    lambda: self.__set_auto_off(4),
-                    '30 minute':    lambda: self.__set_auto_off(5),
+                    'Immer an':    lambda: self.__set_auto_off(0),
+                    '10 Sekunden': lambda: self.__set_auto_off(1),
+                    '1 minute':    lambda: self.__set_auto_off(2),
+                    '2 minute':    lambda: self.__set_auto_off(3),
+                    '10 minute':   lambda: self.__set_auto_off(4),
+                    '30 minute':   lambda: self.__set_auto_off(5),
                 },
                 'System Neustarten': lambda: self.__show_restart_dialog(),
             },
             'Display Aus': lambda: self.display_off(),
         })
+
         # restore current menu option
-        self.main_menu.patch_pointers({
+        self.main_menu.set_state({
             'System Einstellungen': {
                 'Kontrast': self.config.get('display_contrast', 2),
                 'Auto Off': self.config.get('auto_off_time', 0)
             }
         })
+
         # init menu
         self.main_menu.on_draw( lambda: self.__set_contrast() )
-        self.main_menu.activate()
+        self.show_menu()
 
     def __set_contrast(self, step: Union[int,None] = None, static: bool = False):
         """Set Contrast"""
@@ -172,10 +185,47 @@ class SystemUI(metaclass=SingletonMeta):
         self.display.text('MultiPlatform', 40, 12, WHITE)
         self.display.text(f"{get_platform_model()}", 40, 24, WHITE)
         self.display.text(f'Name: {os.getenv("DEVICE_UID")}', 0, 38, WHITE)
-        self.display.text(f"CPU Temp: {get_cpu_temperature():.2f}'C", 0, 50, WHITE)
-        self.display.show()
+
+        interrupted = False
+
+        def draw_cpu():
+            nonlocal interrupted
+            if interrupted: return
+            self.display.fill_rect(0, 50, 128, 10, BLACK)
+            if interrupted: return
+            self.display.text(f"CPU Temp: {get_cpu_temperature():.2f}'C", 0, 50, WHITE)
+            if interrupted: return
+            self.display.show()
+            if interrupted: return
+            draw_cpu_timer = threading.Timer(1.0, lambda: draw_cpu())
+            if interrupted: return
+            draw_cpu_timer.start()
+
+        draw_cpu()
+
+        def set_interrupted():
+            nonlocal interrupted
+            interrupted = True
+
         self.controls.reset_callbacks()
-        self.controls.on_any(lambda: self.main_menu.activate())
+        self.controls.on_any(lambda: (set_interrupted(), self.show_menu()))
+
+    def show_module_child(self, module_child: Union[SensorConfig, ControllerConfig]):
+        self.__set_contrast(static=True)
+        self.display.fill(BLACK)
+
+        text='Module Child not implemented yet'
+        title='Info'
+
+        if module_child.__class__ == SensorConfig:
+            text=f'Sensor Typ: {module_child.type} Sensor ID: {module_child.id}'
+            title='Sensor'
+
+        elif module_child.__class__ == ControllerConfig:
+            text=f'Controller Typ: {module_child.type} Controller ID: {module_child.id}'
+            title='Controller'
+
+        self.show_info(text=text, title=title)
 
     def display_off(self):
         self.display.fill(BLACK)
@@ -183,22 +233,20 @@ class SystemUI(metaclass=SingletonMeta):
         self.display.poweroff()
         self.controls.reset_callbacks()
         self.controls.on_any(lambda: self.display.poweron())
-        self.controls.on_any(lambda: self.main_menu.activate())
+        self.controls.on_any(lambda: self.show_menu())
 
-    def show_menu(self):
-        self.main_menu.activate()
 
     def show_WLAN_SSID_input(self):
         self.__set_contrast(static=True)
         def print_and_to_menu(input: str):
             get_logger().debug(f'save WLAN_SSID: {input}')
             self.config.set('WLAN_SSID', input)
-            self.main_menu.activate()
+            self.show_menu()
         Input(
             display=self.display,
             controls=self.controls,
             okay_func=lambda text: print_and_to_menu(text),
-            stop_func=lambda: self.main_menu.activate(),
+            stop_func=lambda: self.show_menu(),
             title='WLAN SSID',
             value=self.config.get('WLAN_SSID', '')
         )
@@ -209,12 +257,12 @@ class SystemUI(metaclass=SingletonMeta):
         def print_and_to_menu(input: str):
             get_logger().debug(f'save WLAN_passwd: {input}')
             self.config.set('WLAN_passwd', input)
-            self.main_menu.activate()
+            self.show_menu()
         Input(
             display=self.display,
             controls=self.controls,
             okay_func=lambda text: print_and_to_menu(text),
-            stop_func=lambda: self.main_menu.activate(),
+            stop_func=lambda: self.show_menu(),
             title='WLAN Passwort',
             value=''
         )
@@ -224,7 +272,7 @@ class SystemUI(metaclass=SingletonMeta):
         def restart_system():
             get_logger().warning('App restart command received')
             self.show_info('System Startet jetzt neu. Bitte warten...')
-            output = subprocess.run(['sudo', 'reboot'], capture_output=True, text=True)
+            output = subprocess.run(['sudo', 'reboot', 'now'], capture_output=True, text=True)
             if output.returncode != 0:
                 get_logger().error(output.stderr)
             else:
@@ -233,7 +281,7 @@ class SystemUI(metaclass=SingletonMeta):
             display=self.display,
             controls=self.controls,
             okay_func=lambda: restart_system(),
-            cancel_func=lambda: self.main_menu.activate(),
+            cancel_func=lambda: self.show_menu(),
             title='Neustart',
             text='Wollen Sie wirklich das System Neustarten?'
         )
@@ -242,7 +290,6 @@ class SystemUI(metaclass=SingletonMeta):
         self.__set_contrast(static=True)
         self.display.fill(BLACK)
 
-        # self.display.text('Error', 36, 4, WHITE, size=2)
         self.display.text(title, int(self.display.width / 2) - len(title) * 6, 4, WHITE, size=2)
 
         length=20
@@ -252,13 +299,22 @@ class SystemUI(metaclass=SingletonMeta):
 
         self.display.show()
         self.controls.reset_callbacks()
-        self.controls.on_any(lambda: self.main_menu.activate())
+        self.controls.on_any(lambda: self.show_menu())
 
     def on_destroy(self):
         self.display.fill(BLACK)
         self.display.show()
         self.display.poweroff()
 
+
+    def tick(self):
+        now = time.time()
+        if now - self.last_tick < 20: return
+        self.last_tick = now
+
+        self.display.poweroff()
+        time.sleep(.0005)
+        self.display.poweron()
 
 
 

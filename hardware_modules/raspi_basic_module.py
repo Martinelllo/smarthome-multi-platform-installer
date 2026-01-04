@@ -10,25 +10,25 @@ import time
 from entities.config_entity import ModuleConfig
 
 from helper.platform_detector import get_cpu_temperature
-from core.temp_db import TempDB
-    
+from core.lokal_db import LokalDB
+
 class RaspiBasicModule(ModuleBase):
     def __init__(self, module_config: ModuleConfig):
         self.module_config = module_config
         self.next_time = time.time()
-        self.db = TempDB()
-    
+        self.db = LokalDB()
+
     def get_config(self) -> ModuleConfig:
         return self.module_config
-    
+
     def set_config(self, module_config: ModuleConfig):
         self.module_config = module_config
-             
+
     def tick(self):
         now = time.time()
 
         if self.next_time > now: return None
-        
+
         sensorValues = []
         for sensor in self.module_config.get_sensors():
             if sensor.is_type("CPU Temp"):
@@ -36,10 +36,10 @@ class RaspiBasicModule(ModuleBase):
                     "sensorId": sensor.get_id(),
                     "value": round(get_cpu_temperature(), 2)
                 })
-                
+
         self.db.safe_sensor_readings(sensorValues)
         self.next_time += self.module_config.get_interval()
-    
+
     def on_destroy(self):
         pass
 

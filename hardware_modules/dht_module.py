@@ -15,7 +15,7 @@ from typing import Union
 from helper.pin_to_gpio import map_gpio_for
 from core.logger import get_logger
 from core.io import IO
-from core.temp_db import TempDB
+from core.lokal_db import LokalDB
 
 
 class DHTReadingModule(ModuleBase):
@@ -23,7 +23,7 @@ class DHTReadingModule(ModuleBase):
         self.module_config = module_config
         self.dht = DHTSensor(IO().get_pigpio(), map_gpio_for(module_config.get_pin_by_key('PIN')))
         self.next_time = time.time()
-        self.db = TempDB()
+        self.db = LokalDB()
 
     def get_config(self) -> ModuleConfig:
         return self.module_config

@@ -13,7 +13,7 @@ from core.logger import get_logger
 from core.api_client import APIClient
 from core.mqtt_client import MQTTClient
 from exceptions.module_exception import ModuleInitializationException
-from core.temp_db import TempDB
+from core.lokal_db import LokalDB
 from exceptions.api_exception import ServerNotReachableException
 from exceptions.io_exception import IOInitializationException
 from core.light import Light
@@ -54,7 +54,7 @@ def main():
         api_client = APIClient()
         mqtt_client = MQTTClient()
         module_manager = ModuleManager()
-        localDb = TempDB()
+        localDb = LokalDB()
 
         mqtt_client.subscribe('/restart', lambda data: handle_restart())
 
@@ -70,6 +70,10 @@ def main():
 
             # on each tick the modules check there tasks and do some stuf eg. writing sensor values to the db
             module_manager.tick()
+
+            # display is possibly not available. we catch the not available error here
+            if 'system_ui' in locals():
+                system_ui.tick()
 
             try:
                 if next_contact <= time.time():

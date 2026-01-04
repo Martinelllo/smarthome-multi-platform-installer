@@ -13,7 +13,7 @@ from abstract_base_classes.module_base import ModuleBase
 from entities.config_entity import ModuleConfig
 from helper.pin_to_gpio import map_gpio_for
 from core.io import IO
-from core.temp_db import TempDB
+from core.lokal_db import LokalDB
 
 CONSTANT_SOUND_SPEED = 0.0343 # sound needs 0.0343µs to travel 1mm
 
@@ -40,7 +40,7 @@ class HCSR04Module(ModuleBase):
 
         self.errors = 0
 
-        self.db = TempDB()
+        self.db = LokalDB()
 
     def get_config(self) -> ModuleConfig:
         return self.module_config
