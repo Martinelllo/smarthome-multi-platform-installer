@@ -14,7 +14,7 @@ CRON_SCHEDULE="*/5 * * * *" # Intervall 5 Minuten (kann geändert werden)
 CRON_TAG="# smarthome-multi-platform" # Markierung für sicheren Ersatz
 
 # komplette Cron-Zeile
-CRON_JOB="$CRON_SCHEDULE $CRON_CMD $CRON_TAG"
+CRON_JOB="$CRON_SCHEDULE $CRON_CMD"
 
 ENV_BACKUP="/tmp/multi-platform.env"
 DATA_BACKUP="/tmp/multi-platform.data"
@@ -33,19 +33,12 @@ flock -n 9 || exit 0
 # ───────────────────────────────
 # Alte Cronjobs mit diesem Tag entfernen, neue Zeile hinzufügen
 # ───────────────────────────────
-TMP_CRON=$(mktemp)
 
-# vorhandene Crontab exportieren (falls vorhanden) und gefiltert abspeichern
-crontab -l 2>/dev/null | grep -Fv "$CRON_TAG" > "$TMP_CRON"
+# 1. Alle Jobs ohne diesen Tag behalten
+crontab -l 2>/dev/null | grep -Fv "$CRON_TAG" | crontab -
 
-# neuen Job hinzufügen
-echo "$CRON_JOB" >> "$TMP_CRON"
-
-# Crontab setzen
-crontab "$TMP_CRON"
-
-# temporäre Datei entfernen
-rm "$TMP_CRON"
+# 2. Neuen Job anhängen
+( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
 
 # ───────────────────────────────
 # System Updates
