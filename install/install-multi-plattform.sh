@@ -70,15 +70,19 @@ INSTALLATION=false
 if [ ! -d "$PROJECT_DIR/.git" ]; then
     INSTALLATION=true
 else
-    cd "$PROJECT_DIR" || exit 1
+    cd "$PROJECT_DIR" || INSTALLATION=true
 
-    git fetch origin
+    # fetch ist nötig, aber günstig
+    git fetch origin >/dev/null 2>&1 || INSTALLATION=true
 
-    LOCAL_HASH=$(git rev-parse HEAD)
-    REMOTE_HASH=$(git rev-parse "origin/$BRANCH")
-
-    if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
+    # Nur vergleichen, wenn HEAD existiert
+    if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
         INSTALLATION=true
+    else
+        LOCAL_HASH=$(git rev-parse HEAD)
+        REMOTE_HASH=$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "")
+
+        [ "$LOCAL_HASH" != "$REMOTE_HASH" ] && INSTALLATION=true
     fi
 fi
 
@@ -88,13 +92,17 @@ fi
 if [ "$INSTALLATION" = true ]; then
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
-    if [ -d "$PROJECT_DIR/.git" ]; then
-        cd "$PROJECT_DIR"
-        git fetch origin
-        git reset --hard "origin/$BRANCH"
-    else
-        git clone "$REPO_URL" "$PROJECT_DIR"
+    mkdir -p "$PROJECT_DIR"
+    cd "$PROJECT_DIR" || exit 1
+
+    if [ ! -d .git ]; then
+        git init
+        git remote add origin "$REPO_URL"
     fi
+
+    git fetch origin
+    git checkout -B "$BRANCH" "origin/$BRANCH"
+    git reset --hard "origin/$BRANCH"
 
     # .env anlegen, falls sie nicht existiert
     if [ ! -f "$PROJECT_DIR/.env" ]; then
@@ -102,8 +110,7 @@ if [ "$INSTALLATION" = true ]; then
     else
         rm "$PROJECT_DIR/.env_dist"
     fi
-
-
+    
     sudo chmod 644 "$PROJECT_DIR/main.py"
 
     # install python3 and pip
