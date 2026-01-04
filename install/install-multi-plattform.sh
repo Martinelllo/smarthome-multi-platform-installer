@@ -88,7 +88,7 @@ if [ "$INSTALLATION" = true ]; then
         git init
         git remote add origin "$REPO_URL"
         git fetch origin
-        git reset --hard origin/main
+        git checkout -B main origin/main
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
     fi
