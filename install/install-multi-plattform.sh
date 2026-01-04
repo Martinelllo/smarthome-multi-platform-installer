@@ -74,8 +74,9 @@ if [ ! -d "$PROJECT_DIR/.git" ]; then
 else
     cd "$PROJECT_DIR" || INSTALLATION=true
 
-    # fetch ist nötig, aber günstig
-    git fetch origin >/dev/null 2>&1 || INSTALLATION=true
+    if ! git fetch origin; then
+        INSTALLATION=true
+    fi
 
     # Nur vergleichen, wenn HEAD existiert
     if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
