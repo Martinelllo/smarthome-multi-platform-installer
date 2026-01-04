@@ -33,10 +33,19 @@ flock -n 9 || exit 0
 # ───────────────────────────────
 # Alte Cronjobs mit diesem Tag entfernen, neue Zeile hinzufügen
 # ───────────────────────────────
-(
-  crontab -l 2>/dev/null | grep -Fv "$CRON_TAG"
-  echo "$CRON_JOB"
-) | crontab -
+TMP_CRON=$(mktemp)
+
+# vorhandene Crontab exportieren (falls vorhanden) und gefiltert abspeichern
+crontab -l 2>/dev/null | grep -Fv "$CRON_TAG" > "$TMP_CRON"
+
+# neuen Job hinzufügen
+echo "$CRON_JOB" >> "$TMP_CRON"
+
+# Crontab setzen
+crontab "$TMP_CRON"
+
+# temporäre Datei entfernen
+rm "$TMP_CRON"
 
 # ───────────────────────────────
 # System Updates
