@@ -61,6 +61,7 @@ fi
 # ───────────────────────────────
 # Prüfen, ob Installation nötig ist
 # ───────────────────────────────
+echo "=== multi-platform: Prüfen, ob Installation nötig ist ==="
 INSTALLATION=false
 if [ ! -d "$PROJECT_DIR/.git" ]; then
     INSTALLATION=true
@@ -84,7 +85,10 @@ fi
 # ───────────────────────────────
 # Installation / Update
 # ───────────────────────────────
-if [ "$INSTALLATION" = true ]; then
+if [ "$INSTALLATION" = false ]; then
+    echo "=== multi-platform: Kein Update nötig ==="
+else
+    echo "=== multi-platform: Installation / Update wird durchgeführt ==="
     sudo systemctl stop multi_module_platform 2>/dev/null || true
 
     mkdir -p "$PROJECT_DIR"
@@ -131,4 +135,6 @@ if [ "$INSTALLATION" = true ]; then
     sudo systemctl start multi_module_platform
 
     rm -rf "$PROJECT_DIR/install"
+
+    echo "=== multi-platform: Installation / Update abgeschlossen ==="
 fi

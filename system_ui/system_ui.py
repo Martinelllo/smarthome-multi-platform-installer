@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf8 -*-
 
+from functools import partial
 from itertools import chain
 import os
 import subprocess
@@ -38,8 +39,6 @@ class SystemUI(metaclass=SingletonMeta):
     def __init__(self):
 
         self.config = ConfigStorage()
-
-        self.last_tick = time.time()
 
         self.turn_dark_timer: Union[threading.Timer, None] = None
         self.turn_off_timer: Union[threading.Timer, None] = None
@@ -85,7 +84,6 @@ class SystemUI(metaclass=SingletonMeta):
         else:
             raise DisplayInitializationException(f'DISPLAY_TYPE {self.display_type} on config not supported!')
 
-        self.__set_contrast(self.config.get('display_contrast', 2))
 
         # init controls
         if self.button_type == 'ROTARY':
@@ -115,7 +113,7 @@ class SystemUI(metaclass=SingletonMeta):
                     'WLAN Passwort': lambda: self.show_WLAN_passwd_input(),
                 },
                 'Kontrast': {
-                    f'Stufe {step}': lambda: self.__set_contrast(step) for step in range(6)
+                    f'Stufe {step+1}': partial(self.__set_contrast, step) for step in range(6)
                 },
                 'Auto Off': {
                     'Immer an':    lambda: self.__set_auto_off(0),
@@ -308,13 +306,7 @@ class SystemUI(metaclass=SingletonMeta):
 
 
     def tick(self):
-        now = time.time()
-        if now - self.last_tick < 20: return
-        self.last_tick = now
-
-        self.display.poweroff()
-        time.sleep(.0005)
-        self.display.poweron()
+        self.controls.tick()
 
 
 
