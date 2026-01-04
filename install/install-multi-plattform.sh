@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+# set -e # Exit instantly on error
 
 # ───────────────────────────────
 # Konfiguration
@@ -9,12 +9,10 @@ SERVICE_DIR="/etc/systemd/system/multi_module_platform.service"
 REPO_URL="https://github.com/Martinelllo/smarthome-multi-platform-installer.git"
 BRANCH=main
 
-CRON_CMD="curl -sL https://raw.githubusercontent.com/Martinelllo/smarthome-multi-platform-installer/main/install/install-multi-plattform.sh | bash"
-CRON_SCHEDULE="*/5 * * * *" # Intervall 5 Minuten (kann geändert werden)
-CRON_TAG="# smarthome-multi-platform" # Markierung für sicheren Ersatz
-
-# komplette Cron-Zeile
-CRON_JOB="$CRON_SCHEDULE $CRON_CMD"
+CRON_CMD="curl -sL https://raw.githubusercontent.com/Martinelllo/smarthome-multi-platform-installer/main/install/install-multi-plattform.sh | bash >> /tmp/multi-platform-cron.log 2>&1"
+CRON_SCHEDULE="*/5 * * * *"
+CRON_TAG="# smarthome-multi-platform"
+CRON_JOB="$CRON_SCHEDULE $CRON_CMD $CRON_TAG"
 
 ENV_BACKUP="/tmp/multi-platform.env"
 DATA_BACKUP="/tmp/multi-platform.data"
@@ -34,10 +32,10 @@ flock -n 9 || exit 0
 # Alte Cronjobs mit diesem Tag entfernen, neue Zeile hinzufügen
 # ───────────────────────────────
 
-# 1. Alle Jobs ohne diesen Tag behalten
+# 1. Alte Jobs mit Tag entfernen
 crontab -l 2>/dev/null | grep -Fv "$CRON_TAG" | crontab -
 
-# 2. Neuen Job anhängen
+# 2. Neuen Job hinzufügen
 ( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
 
 # ───────────────────────────────
